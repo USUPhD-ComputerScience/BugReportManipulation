@@ -1,4 +1,3 @@
-
 import au.com.bytecode.opencsv.CSVWriter;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -28,39 +27,93 @@ public class MainManip {
 		 * "square/retrofit"; reposdetail[18] = "GlowstoneMC/Glowstone";
 		 * reposdetail[19] = "excilys/androidannotations";
 		 */
-		String example = "java.lang.RuntimeException: An error occured while executing doInBackground()\n"
-				+ "at android.os.AsyncTask$3.done(AsyncTask.java:299)\n"
-				+ "at java.util.concurrent.FutureTask.finishCompletion(FutureTask.java:352)\n"
-				+ "at java.util.concurrent.FutureTask.setException(FutureTask.java:219)\n"
-				+ "at java.util.concurrent.FutureTask.run(FutureTask.java:239)\n"
-				+ "at android.os.AsyncTask$SerialExecutor$1.run(AsyncTask.java:230)\n"
-				+ "at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1080)\n"
-				+ "at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:573)\n"
-				+ "rat dep\n"
-				+ "trai\n"
-				+ "va\n"
-				+ "ja.Exception \n"
-				+ "at wajhfjksaf(sdghufas:24)\n"
-				+ "Caused by: android.database.sqlite.SQLiteDatabaseLockedException: database is locked (code 5)\n"
-				+ "at android.database.sqlite.SQLiteConnection.nativeExecute(Native Method)\n"
-				+ "at android.database.sqlite.SQLiteConnection.execute(SQLiteConnection.java:548)\n"
-				+ "at android.database.sqlite.SQLiteSession.beginTransactionUnchecked(SQLiteSession.java:323)\n"
-				+ "at android.database.sqlite.SQLiteSession.beginTransaction(SQLiteSession.java:298)\n"
-				+ "at android.database.sqlite.SQLiteDatabase.beginTransaction(SQLiteDatabase.java:505)\n"
-				+ "at android.database.sqlite.SQLiteDatabase.beginTransaction(SQLiteDatabase.java:416)\n"
-				+ "at ca.cumulonimbus.pressurenetsdk.CbDb.addCurrentConditionArrayList(CbDb.java:541)\n"
-				+ "at ca.cumulonimbus.pressurenetsdk.CbDb.addWeatherArrayList(CbDb.java:533)\n"
-				+ "at ca.cumulonimbus.pressurenetsdk.CbApi.saveAPIResults(CbApi.java:85)\n"
-				+ "at ca.cumulonimbus.pressurenetsdk.CbApi.access$3(CbApi.java:80)\n"
-				+ "at ca.cumulonimbus.pressurenetsdk.CbApi$APIDataDownload$SaveAPIData.doInBackground(CbApi.java:211)\n"
-				+ "at ca.cumulonimbus.pressurenetsdk.CbApi$APIDataDownload$SaveAPIData.doInBackground(CbApi.java:1)\n"
-				+ "at android.os.AsyncTask$2.call(AsyncTask.java:287)\n"
-				+ "at java.util.concurrent.FutureTask.run(FutureTask.java:234)\n"
-				+ "... 4 more" + "";
+		String example = "im getting error below after killing one node in the cluster \n"
+				+ "(exception is thrown on remaining nodes)\n"
+				+ "\n"
+				+ "org.elasticsearch.common.util.concurrent.UncategorizedExecutionException: Failed execution\n"
+				+ "        at org.elasticsearch.action.support.AdapterActionFuture.rethrowExecutionException(AdapterActionFuture.java:90)\n"
+				+ "        at org.elasticsearch.action.support.AdapterActionFuture.actionGet(AdapterActionFuture.java:49)\n"
+				+ "        at org.elasticsearch.action.ActionRequestBuilder.get(ActionRequestBuilder.java:67)\n"
+				+ "        ...\n"
+				+ "Caused by: java.util.concurrent.ExecutionException: java.lang.NullPointerException\n"
+				+ "        at org.elasticsearch.common.util.concurrent.BaseFuture$Sync.getValue(BaseFuture.java:288)\n"
+				+ "        at org.elasticsearch.common.util.concurrent.BaseFuture$Sync.get(BaseFuture.java:275)\n"
+				+ "        at org.elasticsearch.common.util.concurrent.BaseFuture.get(BaseFuture.java:113)\n"
+				+ "        at org.elasticsearch.action.support.AdapterActionFuture.actionGet(AdapterActionFuture.java:45)\n"
+				+ "        ... 15 more\n"
+				+ "Caused by: java.lang.NullPointerException\n"
+				+ "        at org.elasticsearch.cluster.routing.IndexShardRoutingTable.getActiveAttribute(IndexShardRoutingTable.java:441)\n"
+				+ "        at org.elasticsearch.cluster.routing.IndexShardRoutingTable.preferAttributesActiveInitializingShardsIt(IndexShardRoutingTable.java:488)\n"
+				+ "        at org.elasticsearch.cluster.routing.IndexShardRoutingTable.preferAttributesActiveInitializingShardsIt(IndexShardRoutingTable.java:483)\n"
+				+ "        at org.elasticsearch.cluster.routing.operation.plain.PlainOperationRouting.preferenceActiveShardIterator(PlainOperationRouting.java:169)\n"
+				+ "        at org.elasticsearch.cluster.routing.operation.plain.PlainOperationRouting.getShards(PlainOperationRouting.java:80)\n"
+				+ "        at org.elasticsearch.action.get.TransportGetAction.shards(TransportGetAction.java:80)\n"
+				+ "        at org.elasticsearch.action.get.TransportGetAction.shards(TransportGetAction.java:42)\n"
+				+ "        at org.elasticsearch.action.support.single.shard.TransportShardSingleOperationAction$AsyncSingleAction.<init>(TransportShardSingleOperationAction.java:121)\n"
+				+ "        at org.elasticsearch.action.support.single.shard.TransportShardSingleOperationAction$AsyncSingleAction.<init>(TransportShardSingleOperationAction.java:97)\n"
+				+ "        at org.elasticsearch.action.support.single.shard.TransportShardSingleOperationAction.doExecute(TransportShardSingleOperationAction.java:74)\n"
+				+ "        at org.elasticsearch.action.support.single.shard.TransportShardSingleOperationAction.doExecute(TransportShardSingleOperationAction.java:49)\n"
+				+ "        at org.elasticsearch.action.support.TransportAction.execute(TransportAction.java:63)\n"
+				+ "        at org.elasticsearch.client.node.NodeClient.execute(NodeClient.java:92)\n"
+				+ "        at org.elasticsearch.client.support.AbstractClient.get(AbstractClient.java:179)\n"
+				+ "        at org.elasticsearch.action.get.GetRequestBuilder.doExecute(GetRequestBuilder.java:112)\n"
+				+ "        at org.elasticsearch.action.ActionRequestBuilder.execute(ActionRequestBuilder.java:85)\n"
+				+ "        at org.elasticsearch.action.ActionRequestBuilder.execute(ActionRequestBuilder.java:59)\n"
+				+ "        \n"
+				+ "context:\n"
+				+ "\n"
+				+ "version: 0.90.9\n"
+				+ "3 node cluster\n"
+				+ "2 replicas\n"
+				+ "10 shards per index\n"
+				+ "im getting error below after killing one node in the cluster \n"
+				+ "(exception is thrown on remaining nodes)\n"
+				+ "\n"
+				+ "org.elasticsearch.common.util.concurrent.UncategorizedExecutionException: Failed execution\n"
+				+ "        at org.elasticsearch.action.support.AdapterActionFuture.rethrowExecutionException(AdapterActionFuture.java:90)\n"
+				+ "        at org.elasticsearch.action.support.AdapterActionFuture.actionGet(AdapterActionFuture.java:49)\n"
+				+ "        at org.elasticsearch.action.ActionRequestBuilder.get(ActionRequestBuilder.java:67)\n"
+				+ "        ...\n"
+				+ "Caused by: java.util.concurrent.ExecutionException: java.lang.NullPointerException\n"
+				+ "        at org.elasticsearch.common.util.concurrent.BaseFuture$Sync.getValue(BaseFuture.java:288)\n"
+				+ "        at org.elasticsearch.common.util.concurrent.BaseFuture$Sync.get(BaseFuture.java:275)\n"
+				+ "        at org.elasticsearch.common.util.concurrent.BaseFuture.get(BaseFuture.java:113)\n"
+				+ "        at org.elasticsearch.action.support.AdapterActionFuture.actionGet(AdapterActionFuture.java:45)\n"
+				+ "        ... 15 more\n"
+				+ "Caused by: java.lang.NullPointerException\n"
+				+ "        at org.elasticsearch.cluster.routing.IndexShardRoutingTable.getActiveAttyribute(IndexShardRoutingTable.java:441)\n"
+				+ "        at org.elasticsearch.cluster.routing.IndexShardRoutingTable.preferAttributesActiveInitializingShardsIt(IndexiShardRoutingTable.java:488)\n"
+				+ "        at org.elasticsefarch.cluster.routing.IndexShardRoutingTable.preferAttributesActiveInitializingShardsIt(IndexShardRoutingTable.java:483)\n"
+				+ "        at org.elasticsearch.cluster.routing.operation.plain.PlainOperationRouting.preferenceActiveShardIterator(PlainOperationRouting.java:169)\n"
+				+ "        at org.elasticsearch.cluster.routing.operation.plain.PlainOperationRouting.getShards(PlainOperationRouting.java:80)\n"
+				+ "        at org.elasticsearch.action.get.TransportGetAfction.shards(TransportGetAction.java:80)\n"
+				+ "        at org.elasticsearch.actsion.support.single.shard.TransportShardSingleOperationAction$AsyncSingleAction.<init>(TransportShardSingleOperationAction.java:121)\n"
+				+ "        at org.elasticsearch.action.support.single.shard.TransportShardSingleOperationAction$AsyncSingleAction.<init>(TransportShardSingleOperationAction.java:97)\n"
+				+ "        at org.elasticsearch.action.support.single.shard.TransportShardSingleOperationAction.doExecute(TransportShardSingleOperationAction.java:74)\n"
+				+ "        at org.elasticsearch.action.support.single.shard.TransportShardSingleOperationAction.doExecute(TransportShardSingleOperationAction.java:49)\n"
+				+ "        at org.elasticsearch.action.support.TransportAction.execute(TransportAction.java:63)\n"
+				+ "        at orag.elasticsearch.client.node.NodeClient.execute(NodeClient.java:92)\n"
+				+ "		   at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:57)\n"
+				+ "		   at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)\n"
+				+ "		   at java.lang.reflect.Method.invoke(Method.java:606)\n"
+				+ "        at org.elasticsearch.client.support.AbstractClient.get(AbstractClient.java:179)\n"
+				+ "        at org.elasticsearch.action.get.GetRequestBuilder.doExecute(GetRequegstBuilder.java:112)\n"
+				+ "        at org.elasticsearch.action.ActionRequestBuilder.execute(ActionRequestBuilder.java:85)\n"
+				+ "        at org.elasticsearch.action.ActionRequestBueilder.execute(ActionRequestBuilder.java:59)\n"
+				+ "        \n"
+				+ "context:\n"
+				+ "\n"
+				+ "version: 0.90.9\n"
+				+ "3 node cluster\n" + "2 replicas\n" + "10 shards per index";
 		String quotedExample = "We have two kinds of nodes: those with ssds (used for indexing and search recent data), those with large spinning disks (used for archiving old indices).\r\n\r\nI'd like to setup a mechanism to move old indices from ssds to spinning disks.\r\n\r\nThe first solution uses reroute command in cluster api. However it feels unnatural since you have to do it shard by shard and decide the target node.\r\n\r\nWhat I want to achieve is the following:\r\n1. stick recent indices (the current one being written) to ssds. They have 2 copies.\r\n2. at some point (disk on ssds is above 65%), one copy is moved to larger boxes (1 copy is still on ssd to help search, 1 copy on large box)\r\n3. when disk is scarce on ssd boxes (90%), we simply drop the copy present on ssd. Since we don't care that much of old data having only one copy is not an issue.\r\n\r\nI have tried to implement this with shard awareness allocation and allocation filtering but it does not seem to work as expected.\r\n\r\nNodes have ```flavor``` attribute depending on their hardware (```ssd``` or ```iodisk```).\r\nCluster is using shard awareness based on ```flavor``` attribute (```cluster.routing.allocation.awareness.attributes: flavor```).\r\n\r\n1. My index template has ```routing.allocation.require: ssd``` to impose two have all copies on ssds first. \r\n2. At some point, I drop the requirement (effectively ``routing.allocation.require: *```). I expect flavor awareness to move one copy to large (iodisk) boxes.\r\n3. At a later point, I'll set ```number_of_replicas``` to 0 and change ```routing.allocation.require``` to ```iodisk``` to drop the shard copy on ssds\r\n\r\nSadly allocation filtering and shard awareness do not seem to cooperate well :\r\nwhen an new index is created, one copy goes to ssds and the other is not allocated anywhere (index stays in yellow state).\r\n\r\nUsing ```curl -XPUT localhost:9200/_cluster/settings -d '{\"transient\":{\"logger.cluster.routing.allocation\":\"trace\"}}'```,\r\nI have observed what happen when a new index is created.\r\n\r\n```\r\n[2014-10-16 06:53:19,462][TRACE][cluster.routing.allocation.decider] [bungeearchive01-par.storage.criteo.preprod] Can not allocate [[2014-10-16.01][3], node[null], [R], s[UNASSIGNED]] on node [qK34VLdhTferCQs2oNJOyg] due to [SameShardAllocationDecider]\r\n[2014-10-16 06:53:19,463][TRACE][cluster.routing.allocation.decider] [bungeearchive01-par.storage.criteo.preprod] Can not allocate [[2014-10-16.01][3], node[null], [R], s[UNASSIGNED]] on node [gE7OTgevSUuoj44RozxK0Q] due to [AwarenessAllocationDecider]\r\n[2014-10-16 06:53:19,463][TRACE][cluster.routing.allocation.decider] [bungeearchive01-par.storage.criteo.preprod] Can not allocate [[2014-10-16.01][3], node[null], [R], s[UNASSIGNED]] on node [Y2k9qXfsTx6X2iQTxg9RBQ] due to [AwarenessAllocationDecider]\r\n[2014-10-16 06:53:19,463][TRACE][cluster.routing.allocation.decider] [bungeearchive01-par.storage.criteo.preprod] Can not allocate [[2014-10-16.01][3], node[null], [R], s[UNASSIGNED]] on node [FwWc2XPPRWuje2KH6AlDEQ] due to [FilterAllocationDecider]\r\n[2014-10-16 06:53:19,492][TRACE][cluster.routing.allocation.allocator] [bungeearchive01-par.storage.criteo.preprod] No Node found to assign shard [[2014-10-16.01][3], node[null], [R], s[UNASSIGNED]]\r\n```\r\n\r\nThis transcript shows that \r\n- shard 3 primary replica is on node qK34VLdhTferCQs2oNJOyg (flavor:ssd) which prevent its copy to placed there\r\n- it cannot be placed on gE7OTgevSUuoj44RozxK0Q (ssd as well) because it tries to maximizes dispersion accross flavors\r\n- it cannot be placed on Y2k9qXfsTx6X2iQTxg9RBQ for the same reason\r\n- it cannot be placed on FwWc2XPPRWuje2KH6AlDEQ (flavor: iodisk) because of the filter\r\n\r\nQuestions:\r\n- am I doing it wrong?\r\n- should I stick with a set of reroute command?\r\n- are awareness and filtering supposed to cooperate?\r\n\r\n,";
-		// Util.splitStackTrace(example);
-		//Util.splitQuotedText(quotedExample);
-		String[] issuesUnderObservation = { "4209", "3995", "4801", "1527",
+		List<StackTrace> stacktraces = Util.splitStackTrace(example);
+		stacktraces.get(0).findSimilarPairs(stacktraces.get(0).buildSimilarityMatrix(stacktraces.get(1)));;
+		
+		//for (int i = 0; i < stacktraces.length-1; i++){
+			//Util.splitException(stacktraces[i]);
+		//}
+		// Util.splitQuotedText(quotedExample);
+		/*String[] issuesUnderObservation = { "4209", "3995", "4801", "1527",
 				"6617", "2522", "7168" };
 		long startTime = System.nanoTime();
 		// IssueManager.getInstance().loadRepositoriesToLocal(repoDetails);
@@ -119,7 +172,7 @@ public class MainManip {
 			System.out.println("The whole process ate up: "
 					+ (duration / 1000000 / 1000 / 60) + " minutes");
 
-		}
+		}*/
 
 	}
 

@@ -3,19 +3,26 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.regex.*;
 
 
 public class Util {
-	static private final Pattern mPattern = Pattern
+	static private final Pattern mStackTracePattern = Pattern
 			.compile("(?<StackTrace>(\\[\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\"
 					+ "d{2}\\.\\d{3} [A-Z]+\\] (?<Message>[\\s\\S]*?)\\n?)*((C"
-					+ "aused by: )?(?<EXCEPTION>[a-zA-Z0-9_.]+Exception)(?<Emes"
+					+ "aused by: )?(?<EXCEPTION>[a-zA-Z0-9_.]+Exception):*(?<Emes"
 					+ "sage>[^\\r^\\n]+)?(?<ATmessage>\\s*at\\s(?<METHOD>[a-zA"
 					+ "-Z0-9_.$<>]*)\\((?<description>(?<fileLine>(?<FILE>[a-z"
 					+ "A-Z0-9_.$]*):(?<LINE>[0-9]+))|(?<native>Native Method)|"
-					+ "(?<unk>Unknown Source))\\))+([\\n]*\\s*(...)?\\s*[0-9]* more)?)+)");
+					+ "(?<unk>Unknown Source))\\))+([\\n]*)?)+)");
+	static private final Pattern mStactTraceDetail = Pattern
+			.compile("(?<atMessage>\\s*at\\s(?<QualifierName>[a-zA-Z0-9_.$<>]*)"
+					+ "\\((?<description>(?<fileLine>(?<CLASS>[a-zA-Z0-9_$]*).j"
+					+ "ava:(?<LINE>[0-9]*))|(?<native>Native Method)|(?<unk>Unkn"
+					+ "own Source))\\))");
 	private static HashSet<String> customStopWordList = null;
 
 	static String normalizeString(String s) {
@@ -52,7 +59,7 @@ public class Util {
 	}
 
 	static String removeStackTrace(String s) {
-		Matcher matcher = mPattern.matcher(s);
+		Matcher matcher = mStackTracePattern.matcher(s);
 		StringBuilder strBuilder = new StringBuilder();
 		int beginIndex = 0;
 		while (matcher.find()) {
@@ -70,53 +77,122 @@ public class Util {
 		return strBuilder.toString();
 	}
 
-	static String[] splitStackTrace(String s) {
-		Matcher matcher = mPattern.matcher(s);
-		StringBuilder strNormal = new StringBuilder();
+	static List<StackTrace> splitStackTrace(String s) {
+		Matcher matcher = mStackTracePattern.matcher(s);
+		// StringBuilder strNormal = new StringBuilder();
 		StringBuilder strStackTrace = new StringBuilder();
-		int beginIndex = 0;
+		// List<String> results = new ArrayList<>();
+		List<StackTrace> stackTraces = new ArrayList<>();
+		// int beginIndex = 0;
+		String stackTraceName = "";
+		String message = "";
 		while (matcher.find()) {
-			strStackTrace.append(matcher.group("StackTrace") + "\n");
-			strNormal.append(s.substring(beginIndex, matcher.start(1)));
-			beginIndex = matcher.end(1);
+			if (matcher.group("StackTrace").contains("Caused by: ")
+					|| strStackTrace.length() == 0) {
+				if (strStackTrace.length() == 0) {
+					stackTraceName = matcher.group("EXCEPTION");
+					message = matcher.group("Emessage");
+				}
+				strStackTrace.append(matcher.group("StackTrace") + "\n");
+			} else {
+				// results.add(strStackTrace.toString());
+				stackTraces.add(new StackTrace(strStackTrace.toString(),
+						stackTraceName, message));
+				strStackTrace = new StringBuilder();
+				strStackTrace.append(matcher.group("StackTrace") + "\n");
+				stackTraceName = matcher.group("EXCEPTION");
+				message = matcher.group("Emessage");
+			}
+			// strNormal.append(s.substring(beginIndex, matcher.start(1)));
+			// beginIndex = matcher.end(1);
 		}
+		if (strStackTrace.length() != 0) {
+			// results.add(strStackTrace.toString());
+			stackTraces.add(new StackTrace(strStackTrace.toString(),
+					stackTraceName, message));
 
-		strNormal.append(s.substring(beginIndex, s.length()));
+		}
+		// strNormal.append(s.substring(beginIndex, s.length()));
+		// results.add(strNormal.toString());
 
 		/*
 		 * System.out.println("No stacktrace:");
-		 * System.out.println(strNormal.toString());
-		 * System.out.println("Stacktrace:");
-		 * System.out.println(strStackTrace.toString());
+		 * System.out.println(results.toArray()[results.size() - 1]);
+		 * System.out.println("Stacktrace:"); for (int i = 0; i < results.size()
+		 * - 1; i++) { System.out.println("===================");
+		 * System.out.println(results.toArray()[i]); }
 		 */
-		String[] strSplitted = { strNormal.toString(), strStackTrace.toString() };
-		return strSplitted;
+		if (stackTraces.size() == 0)
+			return null;
+		return stackTraces;
 	}
 
 	static String[] splitQuotedText(String s) {
 		StringBuilder strNormal = new StringBuilder();
 		StringBuilder strQuoted = new StringBuilder();
-		//boolean bQuoting = false;
+		// boolean bQuoting = false;
 		int i = 0;
-		while(i<s.length()){
-			if(s.charAt(i) == '`'){
+		while (i < s.length()) {
+			if (s.charAt(i) == '`') {
 				int j = i;
-				while(s.charAt(j)== '`') j++;
-				while(s.charAt(j)!= '`') strQuoted.append(s.charAt(j++));
+				while (s.charAt(j) == '`')
+					j++;
+				while (s.charAt(j) != '`')
+					strQuoted.append(s.charAt(j++));
 				strQuoted.append("\n");
-				while(s.charAt(j)== '`') j++;
+				while (s.charAt(j) == '`')
+					j++;
 				i = j;
-			}else{
+			} else {
 				strNormal.append(s.charAt(i++));
 			}
 		}
 
-		System.out.println("Normal:");
-		System.out.println(strNormal.toString());
-		System.out.println("Quoted");
-		System.out.println(strQuoted.toString());
+		/*
+		 * System.out.println("Normal:");
+		 * System.out.println(strNormal.toString());
+		 * System.out.println("Quoted");
+		 * System.out.println(strQuoted.toString());
+		 */
 
 		String[] strSplitted = { strNormal.toString(), strQuoted.toString() };
 		return strSplitted;
 	}
+
+	static List<String[]> splitCalls(String s) {
+		Matcher matcher = mStactTraceDetail.matcher(s);
+		List<String[]> results = new ArrayList<>();
+		while (matcher.find()) {
+			// List<String> wordSequence = new ArrayList<>();
+			String[] qualifierNames = matcher.group("QualifierName").split(
+					"\\.");
+			String[] classes = matcher.group("CLASS").split("(?=\\p{Upper})");
+			String[] wordSequence = new String[qualifierNames.length
+					+ classes.length];
+			System.arraycopy(qualifierNames, 0, wordSequence, 0,
+					qualifierNames.length);
+			System.arraycopy(classes, 0, wordSequence, qualifierNames.length,
+					classes.length);
+			results.add(wordSequence);
+		}
+
+		/*
+		 * System.out.println("===================");
+		 * System.out.println("Stacktrace:"); for (int i = 0; i <
+		 * results.size(); i++) { System.out.println(results.toArray()[i]); }
+		 */
+
+		return results;
+	}
+
+	// Solving Common Longest Subsequence problem for two String Arrays.
+	static double lcs(String[] X, String[] Y, int m, int n) {
+		if (m == 0 || n == 0)
+			return 0;
+		if (X[m - 1].equalsIgnoreCase(Y[n - 1]))
+			return 1 + lcs(X, Y, m - 1, n - 1);
+		else
+			return Math.max(lcs(X, Y, m, n - 1), lcs(X, Y, m - 1, n));
+	}
+
 }

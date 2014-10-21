@@ -1,17 +1,18 @@
 import java.util.HashMap;
-import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 public class Issue {
 	public HashMap<String, Double> tfidf = new HashMap<>();
 	static HashMap<String, Integer> df = new HashMap<>();
 	String m_id, m_title, m_body, m_project;
-
+	List<StackTrace> mStackTraces = null;
 	public Issue(String id, String title, String body, String project) {
 		this.m_id = id;
 		this.m_title = title;
 		this.m_body = body;
 		this.m_project = project;
+		mStackTraces = Util.splitStackTrace(body);
 	}
 	public static double CosineSimilarity(Issue x1, Issue x2) {
 		// TODO Auto-generated method stub
@@ -24,6 +25,12 @@ public class Issue {
 			}
 		}
 		return sum;
+	}
+	
+	public boolean hasStackTrace(){
+		if (mStackTraces == null) 
+			return false;
+		return true;
 	}
 	public void buildVector() {
 		String text = m_body + m_title;
