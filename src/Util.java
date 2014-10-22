@@ -8,7 +8,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.regex.*;
 
-
 public class Util {
 	static private final Pattern mStackTracePattern = Pattern
 			.compile("(?<StackTrace>(\\[\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\"
@@ -179,12 +178,15 @@ public class Util {
 
 	// Solving Common Longest Subsequence problem for two String Arrays.
 	static double lcs(String[] X, String[] Y, int m, int n) {
-		if (m == 0 || n == 0)
-			return 0;
-		if (X[m - 1].equalsIgnoreCase(Y[n - 1]))
-			return 1 + lcs(X, Y, m - 1, n - 1);
-		else
-			return Math.max(lcs(X, Y, m, n - 1), lcs(X, Y, m - 1, n));
+		double[][] M = new double[X.length + 1][Y.length + 1];
+		for (int i = 1; i <= X.length; i++) {
+			for (int j = 1; j <= Y.length; j++) {
+				if (X[i].equalsIgnoreCase(Y[j]))
+					M[i][j] = M[i - 1][j - 1] + 1;
+				else
+					M[i][j] = Math.max(M[i][j - 1], M[i - 1][j]);
+			}
+		}
+		return M[X.length][Y.length];
 	}
-
 }
