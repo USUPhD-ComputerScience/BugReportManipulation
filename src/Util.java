@@ -159,21 +159,13 @@ public class Util {
 		return strSplitted;
 	}
 
-	static List<String[]> splitCalls(String s) {
+	static List<String> splitCalls(String s) {
 		Matcher matcher = mStactTraceDetail.matcher(s);
-		List<String[]> results = new ArrayList<>();
+		List<String> results = new ArrayList<>();
 		while (matcher.find()) {
 			// List<String> wordSequence = new ArrayList<>();
-			String[] qualifierNames = matcher.group("QualifierName").split(
-					"\\.");
-			String[] classes = matcher.group("CLASS").split("(?=\\p{Upper})");
-			String[] wordSequence = new String[qualifierNames.length
-					+ classes.length];
-			System.arraycopy(qualifierNames, 0, wordSequence, 0,
-					qualifierNames.length);
-			System.arraycopy(classes, 0, wordSequence, qualifierNames.length,
-					classes.length);
-			results.add(wordSequence);
+			String qualifierNames = matcher.group("QualifierName");
+			results.add(qualifierNames);
 		}
 
 		/*
