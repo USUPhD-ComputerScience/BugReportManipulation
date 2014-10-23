@@ -189,4 +189,10 @@ public class Util {
 		}
 		return M[X.length][Y.length];
 	}
+
+	static String buildHyperLink(Issue issue) {
+		return "=HYPERLINK(\"" + "https://github.com/" + issue.m_project
+				+ "/issues/" + issue.m_id + "\",\"" + issue.m_project + "-"
+				+ issue.m_id + "\")";
+	}
 }

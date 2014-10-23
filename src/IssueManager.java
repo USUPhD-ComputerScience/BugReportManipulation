@@ -1,4 +1,3 @@
-
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.util.ArrayList;
@@ -15,7 +14,7 @@ import au.com.bytecode.opencsv.CSVWriter;
 
 public class IssueManager {
 
-	ArrayList<Issue> issueData = new ArrayList<Issue>();
+	public ArrayList<Issue> issueData = new ArrayList<Issue>();
 	static private IssueManager instance;
 
 	public static IssueManager getInstance() {
@@ -31,8 +30,8 @@ public class IssueManager {
 		for (int i = 0; i < repoDetails.length; i++) {
 			String prjName = repoDetails[i].split("/")[1];
 			try {
-				CSVReader reader = new CSVReader(new FileReader("\\data\\"+prjName
-						+ "_issues.csv"));
+				CSVReader reader = new CSVReader(new FileReader("\\data\\"
+						+ prjName + "_issues.csv"));
 				String[] entries = reader.readNext();
 				while ((entries = reader.readNext()) != null) {
 
@@ -40,18 +39,54 @@ public class IssueManager {
 						continue;
 
 					issueData.add(new Issue(entries[0], entries[1], entries[2],
-							prjName));
+							repoDetails[i]));
 				}
 				reader.close();
 			} catch (Exception e1) {
 				// TODO Auto-generated catch block
-				System.out.println("Error: Cannot read files " + prjName
+				System.out.println("Error: Cannot read files " + repoDetails[i]
 						+ "_issues.csv");
 				e1.printStackTrace();
 			}
 
 		}
 		System.out.println("-----Done with preparing data-----");
+	}
+
+	public int processLocalRepositories_ST(String[] repoDetails) {
+		// TODO Auto-generated constructor stub
+		System.out.println("Preparing data..");
+		int issueCount = 0;
+		for (int i = 0; i < repoDetails.length; i++) {
+			String prjName = repoDetails[i].split("/")[1];
+			try {
+				CSVReader reader = new CSVReader(new FileReader("\\data\\"
+						+ prjName + "_issues.csv"));
+				String[] entries = reader.readNext();
+				while ((entries = reader.readNext()) != null) {
+
+					if (entries[2].length() < 5 || entries[1].length() < 5)
+						continue;
+
+					List<StackTrace> mStackTraces = Util
+							.splitStackTrace(entries[2]);
+					if (mStackTraces != null) {
+						issueData.add(new Issue(entries[0], entries[1],
+								entries[2], repoDetails[i]));
+					}
+					issueCount++;
+				}
+				reader.close();
+			} catch (Exception e1) {
+				// TODO Auto-generated catch block
+				System.out.println("Error: Cannot read files " + repoDetails[i]
+						+ "_issues.csv");
+				e1.printStackTrace();
+			}
+
+		}
+		System.out.println("-----Done with preparing data-----");
+		return issueCount;
 	}
 
 	public void buildVector() {
@@ -67,8 +102,8 @@ public class IssueManager {
 			github = GitHub.connectUsingPassword("phong1990", "phdcs2014");
 			for (int i = 0; i < repoDetails.length; i++) {
 				GHRepository repo = github.getRepository(repoDetails[i]);
-				CSVWriter writer = new CSVWriter(new FileWriter("\\data\\"+
-						repoDetails[i].split("/")[1] + "_issues.csv"));
+				CSVWriter writer = new CSVWriter(new FileWriter("\\data\\"
+						+ repoDetails[i].split("/")[1] + "_issues.csv"));
 				String[] entries = "id,title,body".split(",");
 				writer.writeNext(entries);
 				List<GHPullRequest> pullRequest = repo
@@ -84,7 +119,7 @@ public class IssueManager {
 					boolean bcontinue = true;
 					for (GHPullRequest pullr : pullRequest) {
 						if (issue.getNumber() == pullr.getNumber()) {
-							System.out.println(issue.getNumber());
+							// System.out.println(issue.getNumber());
 							bcontinue = false;
 							break;
 						}

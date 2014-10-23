@@ -5,7 +5,7 @@ import java.util.Map;
 public class Issue {
 	public HashMap<String, Double> tfidf = new HashMap<>();
 	static HashMap<String, Integer> df = new HashMap<>();
-	String m_id, m_title, m_body, m_project;
+	public String m_id, m_title, m_body, m_project;
 	List<StackTrace> mStackTraces = null;
 	public Issue(String id, String title, String body, String project) {
 		this.m_id = id;
