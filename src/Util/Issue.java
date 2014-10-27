@@ -1,12 +1,16 @@
+package Util;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import Issue.StackTrace;
+import Issue.Util;
 
 public class Issue {
 	public HashMap<String, Double> tfidf = new HashMap<>();
 	static HashMap<String, Integer> df = new HashMap<>();
 	public String m_id, m_title, m_body, m_project;
-	List<StackTrace> mStackTraces = null;
+	public List<StackTrace> mStackTraces = null;
 	public Issue(String id, String title, String body, String project) {
 		this.m_id = id;
 		this.m_title = title;

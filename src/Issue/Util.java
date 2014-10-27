@@ -1,3 +1,5 @@
+package Issue;
+
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -7,6 +9,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.regex.*;
+
+import Util.Issue;
 
 public class Util {
 	static private final Pattern mStackTracePattern = Pattern
@@ -24,14 +28,14 @@ public class Util {
 					+ "own Source))\\))");
 	private static HashSet<String> customStopWordList = null;
 
-	static String normalizeString(String s) {
+	public static String normalizeString(String s) {
 		if (s == null)
 			return "";
 		else
 			return s.replace('\n', ' ').replace('\r', ' ').trim();
 	}
 
-	static boolean isStopWord(String s) {
+	public static boolean isStopWord(String s) {
 		if (customStopWordList == null) {
 			customStopWordList = new HashSet<>();
 			try {
@@ -57,7 +61,7 @@ public class Util {
 		return customStopWordList.contains(s);
 	}
 
-	static String removeStackTrace(String s) {
+	public static String removeStackTrace(String s) {
 		Matcher matcher = mStackTracePattern.matcher(s);
 		StringBuilder strBuilder = new StringBuilder();
 		int beginIndex = 0;
@@ -76,7 +80,7 @@ public class Util {
 		return strBuilder.toString();
 	}
 
-	static List<StackTrace> splitStackTrace(String s) {
+	public static List<StackTrace> splitStackTrace(String s) {
 		Matcher matcher = mStackTracePattern.matcher(s);
 		// StringBuilder strNormal = new StringBuilder();
 		StringBuilder strStackTrace = new StringBuilder();
@@ -190,7 +194,7 @@ public class Util {
 		return M[X.length][Y.length];
 	}
 
-	static String buildHyperLink(Issue issue) {
+	public static String buildHyperLink(Issue issue) {
 		return "=HYPERLINK(\"" + "https://github.com/" + issue.m_project
 				+ "/issues/" + issue.m_id + "\",\"" + issue.m_project + "-"
 				+ issue.m_id + "\")";

@@ -1,3 +1,7 @@
+import Crawler.GitHubCrawler;
+import Issue.IssueManager;
+import Issue.Util;
+import Util.Issue;
 import au.com.bytecode.opencsv.CSVWriter;
 
 import java.io.FileWriter;
@@ -13,20 +17,6 @@ public class MainManip {
 	public static void main(String[] args) throws IOException {
 		// TODO Auto-generated method stub
 
-		String[] repoDetails = {
-				"Cbsoftware/PressureNet", //
-				"zxing/zxing",
-				"realm/realm-java",
-				"ReactiveX/RxJava",//
-				"elasticsearch/elasticsearch",//
-				"nostra13/Android-Universal-Image-Loader",
-				"koush/AndroidAsync",//
-				"square/picasso", "bumptech/glide", "square/okhttp",
-				"EsotericSoftware/kryo", "PhilJay/MPAndroidChart",
-				"dropwizard/metrics", "JakeWharton/butterknife",
-				"spring-projects/spring-boot", "kuujo/copycat",
-				"libgdx/libgdx", "GlowstoneMC/Glowstone", "square/retrofit",
-				"excilys/androidannotations" };
 		String example = "im getting error below after killing one node in the cluster \n"
 				+ "(exception is thrown on remaining nodes)\n"
 				+ "\n"
@@ -106,6 +96,12 @@ public class MainManip {
 				+ "version: 0.90.9\n"
 				+ "3 node cluster\n" + "2 replicas\n" + "10 shards per index";
 		String quotedExample = "We have two kinds of nodes: those with ssds (used for indexing and search recent data), those with large spinning disks (used for archiving old indices).\r\n\r\nI'd like to setup a mechanism to move old indices from ssds to spinning disks.\r\n\r\nThe first solution uses reroute command in cluster api. However it feels unnatural since you have to do it shard by shard and decide the target node.\r\n\r\nWhat I want to achieve is the following:\r\n1. stick recent indices (the current one being written) to ssds. They have 2 copies.\r\n2. at some point (disk on ssds is above 65%), one copy is moved to larger boxes (1 copy is still on ssd to help search, 1 copy on large box)\r\n3. when disk is scarce on ssd boxes (90%), we simply drop the copy present on ssd. Since we don't care that much of old data having only one copy is not an issue.\r\n\r\nI have tried to implement this with shard awareness allocation and allocation filtering but it does not seem to work as expected.\r\n\r\nNodes have ```flavor``` attribute depending on their hardware (```ssd``` or ```iodisk```).\r\nCluster is using shard awareness based on ```flavor``` attribute (```cluster.routing.allocation.awareness.attributes: flavor```).\r\n\r\n1. My index template has ```routing.allocation.require: ssd``` to impose two have all copies on ssds first. \r\n2. At some point, I drop the requirement (effectively ``routing.allocation.require: *```). I expect flavor awareness to move one copy to large (iodisk) boxes.\r\n3. At a later point, I'll set ```number_of_replicas``` to 0 and change ```routing.allocation.require``` to ```iodisk``` to drop the shard copy on ssds\r\n\r\nSadly allocation filtering and shard awareness do not seem to cooperate well :\r\nwhen an new index is created, one copy goes to ssds and the other is not allocated anywhere (index stays in yellow state).\r\n\r\nUsing ```curl -XPUT localhost:9200/_cluster/settings -d '{\"transient\":{\"logger.cluster.routing.allocation\":\"trace\"}}'```,\r\nI have observed what happen when a new index is created.\r\n\r\n```\r\n[2014-10-16 06:53:19,462][TRACE][cluster.routing.allocation.decider] [bungeearchive01-par.storage.criteo.preprod] Can not allocate [[2014-10-16.01][3], node[null], [R], s[UNASSIGNED]] on node [qK34VLdhTferCQs2oNJOyg] due to [SameShardAllocationDecider]\r\n[2014-10-16 06:53:19,463][TRACE][cluster.routing.allocation.decider] [bungeearchive01-par.storage.criteo.preprod] Can not allocate [[2014-10-16.01][3], node[null], [R], s[UNASSIGNED]] on node [gE7OTgevSUuoj44RozxK0Q] due to [AwarenessAllocationDecider]\r\n[2014-10-16 06:53:19,463][TRACE][cluster.routing.allocation.decider] [bungeearchive01-par.storage.criteo.preprod] Can not allocate [[2014-10-16.01][3], node[null], [R], s[UNASSIGNED]] on node [Y2k9qXfsTx6X2iQTxg9RBQ] due to [AwarenessAllocationDecider]\r\n[2014-10-16 06:53:19,463][TRACE][cluster.routing.allocation.decider] [bungeearchive01-par.storage.criteo.preprod] Can not allocate [[2014-10-16.01][3], node[null], [R], s[UNASSIGNED]] on node [FwWc2XPPRWuje2KH6AlDEQ] due to [FilterAllocationDecider]\r\n[2014-10-16 06:53:19,492][TRACE][cluster.routing.allocation.allocator] [bungeearchive01-par.storage.criteo.preprod] No Node found to assign shard [[2014-10-16.01][3], node[null], [R], s[UNASSIGNED]]\r\n```\r\n\r\nThis transcript shows that \r\n- shard 3 primary replica is on node qK34VLdhTferCQs2oNJOyg (flavor:ssd) which prevent its copy to placed there\r\n- it cannot be placed on gE7OTgevSUuoj44RozxK0Q (ssd as well) because it tries to maximizes dispersion accross flavors\r\n- it cannot be placed on Y2k9qXfsTx6X2iQTxg9RBQ for the same reason\r\n- it cannot be placed on FwWc2XPPRWuje2KH6AlDEQ (flavor: iodisk) because of the filter\r\n\r\nQuestions:\r\n- am I doing it wrong?\r\n- should I stick with a set of reroute command?\r\n- are awareness and filtering supposed to cooperate?\r\n\r\n,";
+
+	    //fetchingProcedure();
+		StackTraceStatistic();
+
+		//long l = Math.round(2.0/ (1.0/1 + 1.0/100.0));
+		//System.out.println(l);
 		// List<StackTrace> stacktraces = Util.splitStackTrace(example);
 		// stacktraces.get(0).findSimilarPairs(stacktraces.get(0).buildSimilarityMatrix(stacktraces.get(1)));;
 		// long startTime = System.nanoTime();
@@ -126,8 +122,7 @@ public class MainManip {
 		// String[] issuesUnderObservation = { "4209", "3995", "4801", "1527",
 		// "6617", "2522", "7168" };
 		// long startTime = System.nanoTime(); //
-		//IssueManager.getInstance().loadRepositoriesToLocal(repoDetails);
-		StackTraceStatistic(repoDetails);
+		// IssueManager.getInstance().loadRepositoriesToLocal(repoDetails);
 		// IssueManager.getInstance().processLocalRepositories(repoDetails);
 		// IssueManager.getInstance().buildVector();
 		// LSHasher hasher = new LSHasher(0.5);
@@ -186,10 +181,29 @@ public class MainManip {
 
 	}
 
-	// only does the statistic on issues which have StackTrace inside them
-	private static void StackTraceStatistic(String[] repoDetails) {
+	private static void fetchingProcedure() {
 		long startTime = System.nanoTime();
-		int issueCount = IssueManager.getInstance().processLocalRepositories_ST(repoDetails);
+		GitHubCrawler crawler = new GitHubCrawler("phong1990",
+				"phdcs2014");
+		
+		System.out.println(">>Crawling for a list of java repositories.");
+		List<String> choosenProjects = crawler.crawlRepos(crawler.crawlUser());
+		System.out.println("Choosen Projects = " + choosenProjects.size());
+		System.out.println(">>Fetching issues to local storage.");
+		crawler.loadRepositoriesToLocal(choosenProjects);
+		long endTime = System.nanoTime();
+		long duration = (endTime - startTime); // divide by 1000000 to get
+												// milliseconds.
+		System.out.println("The whole process ate up: "
+				+ (duration / 1000000 / 1000 / 60) + " minutes");
+
+	}
+
+	// only does the statistic on issues which have StackTrace inside them
+	private static void StackTraceStatistic() {
+		long startTime = System.nanoTime();
+		int issueCount = IssueManager.getInstance()
+				.processLocalRepositories_ST();
 		// IssueManager.getInstance().buildVector();
 		// LSHasher hasher = new LSHasher(0.5);
 		// hasher.generateHashVectors(Issue.df);
@@ -198,11 +212,11 @@ public class MainManip {
 		CSVWriter writer = null;
 		CSVWriter analistWriter = null;
 		try {
-			writer = new CSVWriter(new FileWriter("\\data\\StackTraceStat\\"
+			writer = new CSVWriter(new FileWriter("\\IssueData\\StackTraceStat\\"
 					+ "Similar_StackTrace_" + System.currentTimeMillis()
 					+ ".csv"));
 			analistWriter = new CSVWriter(new FileWriter(
-					"\\data\\StackTraceStat\\" + "StackTrace_Analysis_"
+					"\\IssueData\\StackTraceStat\\" + "StackTrace_Analysis_"
 							+ System.currentTimeMillis() + ".csv"));
 
 			// for (Map.Entry<Integer, List<Issue>> entry : hasher.mCategories
@@ -243,16 +257,27 @@ public class MainManip {
 							.put(issues.get(i).mStackTraces.size(), number + 1);
 				else
 					STAnalist.put(issues.get(i).mStackTraces.size(), 1);
-				///////////////////////////////////////////////
+				// /////////////////////////////////////////////
 				String[] entries = new String[2];
 				entries[0] = Util.buildHyperLink(issues.get(i));
 				entries[1] = String.valueOf(issues.get(i).mStackTraces.size());
 				analistWriter.writeNext(entries);
 				// /////////////////////////////////////////////
 			}
-			
-			for (Integer i : STAnalist.keySet()){
-				///////////////////////////////////////////////
+
+			// StackTrace number analysis
+			Integer number = STAnalist
+					.get(issues.get(issues.size() - 1).mStackTraces.size());
+			if (number != null)
+				STAnalist.put(
+						issues.get(issues.size() - 1).mStackTraces.size(),
+						number + 1);
+			else
+				STAnalist.put(
+						issues.get(issues.size() - 1).mStackTraces.size(), 1);
+			// /////////////////////////////////////////////
+			for (Integer i : STAnalist.keySet()) {
+				// /////////////////////////////////////////////
 				String[] entries = new String[4];
 				entries[0] = "-1";
 				entries[1] = "-1";
@@ -288,7 +313,7 @@ public class MainManip {
 			System.out.println("..found " + count + " similar pairs..");
 
 			System.out.println("The whole process ate up: "
-					+ (duration / 1000000 / 1000 ) + " seconds");
+					+ (duration / 1000000 / 1000) + " seconds");
 
 		}
 	}

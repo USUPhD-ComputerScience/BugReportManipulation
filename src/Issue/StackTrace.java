@@ -1,3 +1,4 @@
+package Issue;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Stack;
@@ -50,7 +51,9 @@ public class StackTrace {
 			}
 			//System.out.print("\n");
 		}
-		int l = Math.min(m, n);
+		//int l = Math.min(m, n);
+		// hamonic average
+		long l = Math.round(2.0/ (1.0/m + 1.0/n));
 		double sumOfExponetialDistance = 0;
 		// j run from 1 to l, not 0 to l; This is slightly different from
 		// the equation 4 and equation 1 in reBucket Paper
