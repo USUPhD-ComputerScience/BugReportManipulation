@@ -4,6 +4,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
 
+import Issue.Issue;
+
 public class LSHasher {
 	public HashMap<String, Double> m_HashVector = new HashMap<String, Double>();
 	public Random mRandomGausian = new Random(1);

@@ -1,4 +1,4 @@
-package Issue;
+package Util;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -10,7 +10,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.regex.*;
 
-import Util.Issue;
+import Issue.Issue;
+import Issue.StackTrace;
 
 public class Util {
 	static private final Pattern mStackTracePattern = Pattern
@@ -21,10 +22,10 @@ public class Util {
 					+ "-Z0-9_.$<>]*)\\((?<description>(?<fileLine>(?<FILE>[a-z"
 					+ "A-Z0-9_.$]*):(?<LINE>[0-9]+))|(?<native>Native Method)|"
 					+ "(?<unk>Unknown Source))\\))+([\\n]*)?)+)");
-	static private final Pattern mStactTraceDetail = Pattern
+	static private final Pattern mStactTrace_at = Pattern
 			.compile("(?<atMessage>\\s*at\\s(?<QualifierName>[a-zA-Z0-9_.$<>]*)"
-					+ "\\((?<description>(?<fileLine>(?<CLASS>[a-zA-Z0-9_$]*).j"
-					+ "ava:(?<LINE>[0-9]*))|(?<native>Native Method)|(?<unk>Unkn"
+					+ "\\((?<description>(?<fileLine>(?<CLASS>[a-zA-Z0-9_$]*)."
+					+ "[a-z]+:(?<LINE>[0-9]*))|(?<native>Native Method)|(?<unk>Unkn"
 					+ "own Source))\\))");
 	private static HashSet<String> customStopWordList = null;
 
@@ -130,6 +131,121 @@ public class Util {
 		return stackTraces;
 	}
 
+	public static List<StackTrace> splitStackTrace_v2(String s) {
+		// String potentialText = splitQuotedText(s)[1];
+		// if (potentialText.length() < 50)
+		String potentialText = s;
+		List<String> stackTraces = new ArrayList<>();
+		StringBuilder strStackTrace = new StringBuilder();
+		StringBuilder strNormal = new StringBuilder();
+		int i = 0;
+		int suspicious_begin = 0;
+		int suspicious_end = 0;
+		int suspicious_newBegin = 0;
+		int startCall = 0;
+		boolean confirmed_call = false;
+		int call_cluster = 0;
+		boolean normalLine = true;
+		boolean justCausedBy = false;
+		while (i < potentialText.length()) {
+			if (potentialText.charAt(i) == '\n') {
+				suspicious_end = i;
+				suspicious_begin = suspicious_newBegin;
+				suspicious_newBegin = i + 1;
+				normalLine = true;
+				if (confirmed_call) {
+					strStackTrace.append(potentialText
+							.subSequence(startCall, i) + "\n");
+					confirmed_call = false;
+					call_cluster++;
+					normalLine = false;
+					justCausedBy = false;
+				} else {
+					if (call_cluster > 1) {
+						if (potentialText.substring(suspicious_begin,
+								suspicious_end).contains("Caused by:")) {
+							normalLine = false;
+							justCausedBy = true;
+						} else {
+							if (potentialText.substring(suspicious_begin,
+									suspicious_end).contains("  ...")
+									|| potentialText.substring(
+											suspicious_begin, suspicious_end)
+											.contains("\t...")) {
+								normalLine = false;
+							} else {
+								stackTraces.add(strStackTrace.toString());
+								strStackTrace = new StringBuilder();
+								call_cluster = 0;
+							}
+						}
+					}
+
+				}
+
+				if (normalLine) {
+					if (justCausedBy) {
+						stackTraces.add(strStackTrace.toString());
+						strStackTrace = new StringBuilder();
+						justCausedBy = false;
+					}
+					strNormal.append(potentialText.subSequence(
+							suspicious_begin, suspicious_end));
+				}
+			}
+
+			if (i + 4 <= potentialText.length()) {
+				if (potentialText.substring(i, i + 4).equals(" at ")
+						|| potentialText.substring(i, i + 4).equals("\tat ")) {
+					startCall = i;
+					i = i + 4;
+					int j = i;
+					boolean braket1 = false;
+					int spaceCounter = 0;
+					while (j < potentialText.length()
+							&& potentialText.charAt(j) != '\n') {
+						if (!braket1) {
+							if (potentialText.charAt(j) == ' ')
+								break;
+							if (potentialText.charAt(j) == '(')
+								braket1 = true;
+						} else {
+							if (potentialText.charAt(j) == '(')
+								break;
+							if (potentialText.charAt(j) == ' ')
+								spaceCounter++;
+							if (spaceCounter > 1) // only 1 space in (Unknown
+													// Source) or (Native
+													// Method)
+								break;
+							if (potentialText.charAt(j) == ')')
+								confirmed_call = true;
+						}
+						j++;
+					}
+					if (j < potentialText.length())
+						if (potentialText.charAt(j) != '\n'
+								|| potentialText.charAt(j) != '\r')
+							j--;
+					i = j;
+				}
+			}
+			i++;
+		}
+		if (strStackTrace.length() > 1) {
+			stackTraces.add(strStackTrace.toString());
+			strStackTrace = new StringBuilder();
+		}
+		List<StackTrace> results = new ArrayList<>();
+		for (String st : stackTraces) {
+			results.add(new StackTrace(st, "", ""));
+		}
+
+		if (results.size() == 0)
+			return null;
+		return results;
+	}
+
 	static String[] splitQuotedText(String s) {
 		StringBuilder strNormal = new StringBuilder();
 		StringBuilder strQuoted = new StringBuilder();
@@ -138,12 +254,12 @@ public class Util {
 		while (i < s.length()) {
 			if (s.charAt(i) == '`') {
 				int j = i;
-				while (s.charAt(j) == '`')
+				while (j < s.length() && s.charAt(j) == '`')
 					j++;
-				while (s.charAt(j) != '`')
+				while (j < s.length() && s.charAt(j) != '`')
 					strQuoted.append(s.charAt(j++));
 				strQuoted.append("\n");
-				while (s.charAt(j) == '`')
+				while (j < s.length() && s.charAt(j) == '`')
 					j++;
 				i = j;
 			} else {
@@ -162,8 +278,8 @@ public class Util {
 		return strSplitted;
 	}
 
-	static List<String> splitCalls(String s) {
-		Matcher matcher = mStactTraceDetail.matcher(s);
+	public static List<String> splitCalls(String s) {
+		Matcher matcher = mStactTrace_at.matcher(s);
 		List<String> results = new ArrayList<>();
 		while (matcher.find()) {
 			// List<String> wordSequence = new ArrayList<>();
@@ -195,8 +311,70 @@ public class Util {
 	}
 
 	public static String buildHyperLink(Issue issue) {
+		if (issue.m_project.equals("eclipseBugzilla"))
+			return "=HYPERLINK(\""
+					+ "https://bugs.eclipse.org/bugs/show_bug.cgi?id="
+					+ issue.m_id + "\",\"" + issue.m_project + "-" + issue.m_id
+					+ "\")";
+		if (issue.m_project.equals("gnomebugzilla"))
+			return "=HYPERLINK(\""
+					+ "https://bugzilla.gnome.org/show_bug.cgi?id="
+					+ issue.m_id + "\",\"" + issue.m_project + "-" + issue.m_id
+					+ "\")";
+		
 		return "=HYPERLINK(\"" + "https://github.com/" + issue.m_project
 				+ "/issues/" + issue.m_id + "\",\"" + issue.m_project + "-"
 				+ issue.m_id + "\")";
+	}
+
+	public static String stripNonDigits(final CharSequence input) {
+		final StringBuilder sb = new StringBuilder(input.length());
+		for (int i = 0; i < input.length(); i++) {
+			final char c = input.charAt(i);
+			if (c > 47 && c < 58) {
+				sb.append(c);
+			}
+		}
+		return sb.toString();
+	}
+
+	public static String stripNonChars(final CharSequence input) {
+		final StringBuilder sb = new StringBuilder(input.length());
+		for (int i = 0; i < input.length(); i++) {
+			final char c = input.charAt(i);
+			if ((c > 64 && c < 91) || (c > 96 && c < 123)) {
+				sb.append(c);
+			}
+		}
+		return sb.toString();
+	}
+
+	/**
+	 * This method ensures that the output String has only valid XML unicode
+	 * characters as specified by the XML 1.0 standard. For reference, please
+	 * see <a href="http://www.w3.org/TR/2000/REC-xml-20001006#NT-Char">the
+	 * standard</a>. This method will return an empty String if the input is
+	 * null or empty.
+	 *
+	 * @param in
+	 *            The String whose non-valid characters we want to remove.
+	 * @return The in String, stripped of non-valid characters.
+	 */
+	public static String stripNonValidXMLCharacters(String in) {
+		StringBuffer out = new StringBuffer(); // Used to hold the output.
+		char current; // Used to reference the current character.
+
+		if (in == null || ("".equals(in)))
+			return ""; // vacancy test.
+		for (int i = 0; i < in.length(); i++) {
+			current = in.charAt(i); // NOTE: No IndexOutOfBoundsException caught
+									// here; it should not happen.
+			if ((current == 0x9) || (current == 0xA) || (current == 0xD)
+					|| ((current >= 0x20) && (current <= 0xD7FF))
+					|| ((current >= 0xE000) && (current <= 0xFFFD))
+					|| ((current >= 0x10000) && (current <= 0x10FFFF)))
+				out.append(current);
+		}
+		return out.toString();
 	}
 }

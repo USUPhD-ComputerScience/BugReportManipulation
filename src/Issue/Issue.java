@@ -1,22 +1,31 @@
-package Util;
+package Issue;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import Issue.StackTrace;
-import Issue.Util;
+import Util.Util;
 
 public class Issue {
 	public HashMap<String, Double> tfidf = new HashMap<>();
 	static HashMap<String, Integer> df = new HashMap<>();
-	public String m_id, m_title, m_body, m_project;
+	public String m_id, m_title, m_body, m_project, m_comments;
 	public List<StackTrace> mStackTraces = null;
 	public Issue(String id, String title, String body, String project) {
 		this.m_id = id;
 		this.m_title = title;
 		this.m_body = body;
 		this.m_project = project;
-		mStackTraces = Util.splitStackTrace(body);
+		mStackTraces = Util.splitStackTrace_v2(body);
+	}
+	
+	public Issue(){
+		// don't touch this method if you dont know what you are doing
+		// lel
+		this.m_id = null;
+		this.m_title = null;
+		this.m_body = null;
+		this.m_project = null;
+		m_comments = null;
 	}
 	public static double CosineSimilarity(Issue x1, Issue x2) {
 		// TODO Auto-generated method stub
@@ -35,6 +44,14 @@ public class Issue {
 		if (mStackTraces == null) 
 			return false;
 		return true;
+	}
+	
+	public void print(){
+		System.out.println("===============================================");
+		System.out.println(">>ID:\n" + m_id);
+		System.out.println(">>Title:\n" + m_title);
+		System.out.println(">>Body:\n" + m_body);
+		System.out.println(">>Comments:\n" + m_comments);
 	}
 	public void buildVector() {
 		String text = m_body + m_title;

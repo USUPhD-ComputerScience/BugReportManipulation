@@ -1,4 +1,5 @@
 package Crawler;
+
 import java.awt.Choice;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -10,6 +11,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.URL;
+import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -29,7 +31,9 @@ import org.kohsuke.github.GHPullRequest;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 
-import Issue.Util;
+import Issue.IssueManager;
+import Util.MySQLConnector;
+import Util.Util;
 import au.com.bytecode.opencsv.CSVWriter;
 
 public class GitHubCrawler {
@@ -57,11 +61,11 @@ public class GitHubCrawler {
 			for (int i = 1; i < 10; i++) {
 				// Example:
 				// https://api.github.com/search/repositories?q=user:google+language:Java&sort=stars&order=desc
-				url = new URL(GITHUB_SEARCHUSER_URL+i);
+				url = new URL(GITHUB_SEARCHUSER_URL + i);
 				HttpURLConnection uc = setupConnection(url);
 				choosenUsers.addAll(parseUsers(uc));
 				TimeUnit.SECONDS.sleep(3);
-				url = new URL(GITHUB_SEARCHORG_URL+i);
+				url = new URL(GITHUB_SEARCHORG_URL + i);
 				uc = setupConnection(url);
 				choosenUsers.addAll(parseUsers(uc));
 				TimeUnit.SECONDS.sleep(3);
@@ -132,8 +136,8 @@ public class GitHubCrawler {
 		return choosenUsers;
 	}
 
-	public List<String> crawlRepos(HashSet<String> mGitUsers) {
-		List<String> choosenRepos = new ArrayList<>();
+	public int crawlRepos(HashSet<String> mGitUsers) {
+		int choosenrepos = 0;
 		for (String user : mGitUsers) {
 			// https://api.github.com/users/google/repos
 			URL url;
@@ -142,7 +146,8 @@ public class GitHubCrawler {
 				// https://api.github.com/search/repositories?q=user:google+language:Java&sort=stars&order=desc
 				url = new URL(GITHUB_SEARCH_URL + user + GITHUB_SEARCHTAIL_URL);
 				HttpURLConnection uc = setupConnection(url);
-				choosenRepos.addAll(parseRepos(uc));
+				choosenrepos += parseRepos(uc);
+				System.out.println("Done with user: " + user);
 				TimeUnit.SECONDS.sleep(3);
 			} catch (MalformedURLException e) {
 				// TODO Auto-generated catch block
@@ -155,13 +160,17 @@ public class GitHubCrawler {
 				e.printStackTrace();
 			}
 		}
-		return choosenRepos;
+		return choosenrepos;
 	}
 
-	private List<String> parseRepos(HttpURLConnection uc) throws IOException {
+	private int parseRepos(HttpURLConnection uc) throws IOException {
 		InputStreamReader r = null;
-		List<String> choosenRepos = new ArrayList<>();
+		MySQLConnector db = null;
+		int choosenrepos = 0;
 		try {
+			db = new MySQLConnector("phong1990", "phdcs2014",
+					IssueManager.DATABASE);
+
 			r = new InputStreamReader(wrapStream(uc, uc.getInputStream()),
 					"UTF-8");
 			String data = IOUtils.toString(r);
@@ -185,9 +194,12 @@ public class GitHubCrawler {
 					break;
 				case VALUE_TRUE:
 					if (bCheckIssues) {
-						System.out.println(repoBuffer);
+						// System.out.println(repoBuffer);
 						bCheckIssues = false;
-						choosenRepos.add(repoBuffer);
+						String values[] = new String[1];
+						values[0] = repoBuffer; // project name
+						db.insert(IssueManager.GITHUB_TABLE_DB, values);
+						choosenrepos++;
 					}
 					break;
 				case VALUE_NULL:
@@ -213,10 +225,15 @@ public class GitHubCrawler {
 					break;
 				}
 			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		} finally {
 			IOUtils.closeQuietly(r);
+			if (db != null)
+				db.close();
 		}
-		return choosenRepos;
+		return choosenrepos;
 	}
 
 	/**
@@ -256,23 +273,45 @@ public class GitHubCrawler {
 		uc.setRequestProperty("Accept-Encoding", "gzip");
 		return uc;
 	}
-	public void loadRepositoriesToLocal(List<String> repoDetails) {
+
+	public void loadRepositoriesToLocal() {
+		MySQLConnector db = null;
 		try {
+			db = new MySQLConnector("phong1990", "phdcs2014",
+					IssueManager.DATABASE);
+			HashSet<String> ignoredPrj = new HashSet<>();
+			HashSet<String> repoDetails = new HashSet<>();
+			String fields[] = { "name" };
+			ResultSet prjList = db.select(IssueManager.PROJECTS_TABLE_DB,
+					fields, null);
+			while (prjList.next()) {
+				ignoredPrj.add(prjList.getString("name"));
+			}
+			prjList.close();
+			ResultSet repoList = db.select(IssueManager.GITHUB_TABLE_DB,
+					fields, null);
+			while (repoList.next()) {
+				repoDetails.add(repoList.getString("name"));
+			}
+			repoList.close();
+			// remove all Projects that are processed.
+			repoDetails.removeAll(ignoredPrj);
+
 			GitHub github;
-			github = GitHub.connectUsingPassword("phong1990", "phdcs2014");
-			List<String> choosenRepos = new ArrayList<>();
-			for (int i = 0; i < repoDetails.size(); i++) {
-				GHRepository repo = github.getRepository(repoDetails.get(i));
+			github = GitHub.connectUsingPassword("phongvm90", "arigatou1990");
+			int prjCount = 0;
+			for (String prj_name : repoDetails) {
+				GHRepository repo = github.getRepository(prj_name);
 				List<GHPullRequest> pullRequest = repo
 						.getPullRequests(GHIssueState.CLOSED);
 				// //
 				List<GHIssue> issues = repo.getIssues(GHIssueState.CLOSED);
-				if (issues.size() - pullRequest.size() > 50) {
-					CSVWriter writer = new CSVWriter(new FileWriter("\\IssueData\\"
-							+ repoDetails.get(i).split("/")[1] + "_issues.csv"));
-					choosenRepos.add(repoDetails.get(i));
-					String[] entries = "id,title,body".split(",");
-					writer.writeNext(entries);
+				if (issues.size() - pullRequest.size() > 25) {
+					// add this project into database;
+					String[] entries = { prj_name, "0" };
+					String project_id = String.valueOf(db.insert(
+							IssueManager.PROJECTS_TABLE_DB, entries));
+					// add the issues into database
 					for (GHIssue issue : issues) {
 						/*
 						 * //checking labels for (GHIssue.Label label :
@@ -289,34 +328,30 @@ public class GitHubCrawler {
 							}
 						}
 						if (bcontinue) {
-							entries[0] = String.valueOf(issue.getNumber());
-							entries[1] = Util.normalizeString(issue.getTitle());
-							entries[2] = Util.normalizeString(issue.getBody());
-							writer.writeNext(entries);
+							String values[] = new String[5];
+							values[0] = project_id;
+							values[1] = String.valueOf(issue.getNumber()); // issue_id
+							values[2] = issue.getTitle(); // issue_summary
+							values[3] = issue.getBody(); // issue_body
+							values[4] = ""; // comments
+							db.insert(IssueManager.ISSUES_TABLE_DB, values);
 						}
 						// }
 						// isBug = false;
 
 					}
-					writer.close();
-					System.out.println("Done with " + repoDetails.get(i));
+					System.out.println("Done with " + prj_name);
+					prjCount++;
 					TimeUnit.SECONDS.sleep(1);
 				}
 			}
-			// Write to a file contains list of all repository names
-			CSVWriter reposWriter = new CSVWriter(new FileWriter(
-					"\\IssueData\\project_list.csv"));
-			String[] entries = new String[1];
-			for (String project : choosenRepos) {
-				entries[0] = project;
-				reposWriter.writeNext(entries);
-			}
-			reposWriter.close();
-			System.out.println(">>Fetched: " + choosenRepos.size()
-					+ " repositories.");
+			System.out.println(">>Fetched: " + prjCount + " repositories.");
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} finally {
+			if (db != null)
+				db.close();
 		}
 	}
 
