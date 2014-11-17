@@ -1,5 +1,7 @@
 package Issue;
+
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Stack;
 
@@ -7,7 +9,7 @@ import Util.Util;
 
 public class StackTrace {
 	public List<String> mListCalls = null;
-	public String[] mException;
+	public String mException;
 	public String mMessage = null;
 	public static final double mThreshold = 0.9;
 	private static final double c_Coefficent = 0.1; // c is a coefficient for
@@ -26,43 +28,55 @@ public class StackTrace {
 		 * mListCalls.get(i); for(int j = 0; j < call.length; j++){
 		 * System.out.print(call[j]+"."); } System.out.print("\n"); }
 		 */
-		mException = ex.split("\\.");
+		mException = ex;
 		mMessage = mes;
+	}
+
+	public boolean contains(List<String> something) {
+		for (String call : mListCalls) {
+			for (String thing : something) {
+				if (call.contains(thing))
+					return true;
+			}
+		}
+		return false;
 	}
 
 	// PDM!
 	// compare similarity between two stackTraces using reBucket-icse2012:
 	// Position Dependent Model (PDM)
 	public double compareTo(StackTrace st2) {
-
-		int m = mListCalls.size();
-		int n = st2.mListCalls.size();
-		double[][] M = new double[m + 1][n + 1];
-		for (int i = 1; i <= m; i++) {
-			for (int j = 1; j <= n; j++) {
-				M[i][j] = M[i - 1][j - 1];
-				if (mListCalls.get(i - 1).equals(st2.mListCalls.get(j - 1))) {
-					M[i][j] += Math.exp((-c_Coefficent) * Math.min(i, j))
-							* Math.exp((-o_Coefficent) * Math.abs(i - j));
+		if (mException.equals(st2.mException)) {
+			int m = mListCalls.size();
+			int n = st2.mListCalls.size();
+			double[][] M = new double[m + 1][n + 1];
+			for (int i = 1; i <= m; i++) {
+				for (int j = 1; j <= n; j++) {
+					M[i][j] = M[i - 1][j - 1];
+					if (mListCalls.get(i - 1).equals(st2.mListCalls.get(j - 1))) {
+						M[i][j] += Math.exp((-c_Coefficent) * Math.min(i, j))
+								* Math.exp((-o_Coefficent) * Math.abs(i - j));
+					}
+					if (M[i][j] < M[i - 1][j])
+						M[i][j] = M[i - 1][j];
+					if (M[i][j] < M[i][j - 1])
+						M[i][j] = M[i][j - 1];
+					// System.out.print(M[i][j] + ",");
 				}
-				if (M[i][j] < M[i - 1][j])
-					M[i][j] = M[i - 1][j];
-				if (M[i][j] < M[i][j - 1])
-					M[i][j] = M[i][j - 1];
-				//System.out.print(M[i][j] + ",");
+				// System.out.print("\n");
 			}
-			//System.out.print("\n");
-		}
-		//int l = Math.min(m, n);
-		// hamonic average
-		long l = Math.round(2.0/ (1.0/m + 1.0/n));
-		double sumOfExponetialDistance = 0;
-		// j run from 1 to l, not 0 to l; This is slightly different from
-		// the equation 4 and equation 1 in reBucket Paper
-		for (double j = 1; j <= l; j++) {
-			sumOfExponetialDistance += Math.exp((-c_Coefficent) * j);
-		}
-		return M[m][n] / sumOfExponetialDistance;
+			// int l = Math.min(m, n);
+			// hamonic average
+			long l = Math.round(2.0 / (1.0 / m + 1.0 / n));
+			double sumOfExponetialDistance = 0;
+			// j run from 1 to l, not 0 to l; This is slightly different from
+			// the equation 4 and equation 1 in reBucket Paper
+			for (double j = 1; j <= l; j++) {
+				sumOfExponetialDistance += Math.exp((-c_Coefficent) * j);
+			}
+			return M[m][n] / sumOfExponetialDistance;
+		} else
+			return 0;
 	}
 
 }

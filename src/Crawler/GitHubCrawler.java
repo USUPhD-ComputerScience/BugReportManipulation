@@ -12,6 +12,7 @@ import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.URL;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -301,54 +302,72 @@ public class GitHubCrawler {
 			github = GitHub.connectUsingPassword("phongvm90", "arigatou1990");
 			int prjCount = 0;
 			for (String prj_name : repoDetails) {
-				GHRepository repo = github.getRepository(prj_name);
-				List<GHPullRequest> pullRequest = repo
-						.getPullRequests(GHIssueState.CLOSED);
-				// //
-				List<GHIssue> issues = repo.getIssues(GHIssueState.CLOSED);
-				if (issues.size() - pullRequest.size() > 25) {
-					// add this project into database;
-					String[] entries = { prj_name, "0" };
-					String project_id = String.valueOf(db.insert(
-							IssueManager.PROJECTS_TABLE_DB, entries));
-					// add the issues into database
-					for (GHIssue issue : issues) {
-						/*
-						 * //checking labels for (GHIssue.Label label :
-						 * issue.getLabels()) { if (label.getName().contains("bug"))
-						 * { isBug = true; break; } }
-						 */
-						// if (isBug) {
-						boolean bcontinue = true;
-						for (GHPullRequest pullr : pullRequest) {
-							if (issue.getNumber() == pullr.getNumber()) {
-								// System.out.println(issue.getNumber());
-								bcontinue = false;
-								break;
+				try {
+					GHRepository repo;
+					repo = github.getRepository(prj_name);
+					List<GHPullRequest> pullRequest = repo
+							.getPullRequests(GHIssueState.CLOSED);
+					// //
+					List<GHIssue> issues = repo.getIssues(GHIssueState.CLOSED);
+					if (issues.size() - pullRequest.size() > 5) {
+						// add this project into database;
+						String[] entries = { prj_name, "0" };
+						String project_id = String.valueOf(db.insert(
+								IssueManager.PROJECTS_TABLE_DB, entries));
+						// add the issues into database
+						for (GHIssue issue : issues) {
+							/* 
+							 * //checking labels for (GHIssue.Label label :
+							 * issue.getLabels()) { if (label.getName().contains("bug"))
+							 * { isBug = true; break; } }
+							 */
+							// if (isBug) {
+							boolean bcontinue = true;
+							for (GHPullRequest pullr : pullRequest) {
+								if (issue.getNumber() == pullr.getNumber()) {
+									// System.out.println(issue.getNumber());
+									bcontinue = false;
+									break;
+								}
 							}
+							if (bcontinue) {
+								String values[] = new String[5];
+								values[0] = project_id;
+								values[1] = String.valueOf(issue.getNumber()); // issue_id
+								values[2] = issue.getTitle(); // issue_summary
+								values[3] = issue.getBody(); // issue_body
+								values[4] = ""; // comments
+								db.insert(IssueManager.ISSUES_TABLE_DB, values);
+							}
+							// }
+							// isBug = false;
+
 						}
-						if (bcontinue) {
-							String values[] = new String[5];
-							values[0] = project_id;
-							values[1] = String.valueOf(issue.getNumber()); // issue_id
-							values[2] = issue.getTitle(); // issue_summary
-							values[3] = issue.getBody(); // issue_body
-							values[4] = ""; // comments
-							db.insert(IssueManager.ISSUES_TABLE_DB, values);
-						}
-						// }
-						// isBug = false;
+						System.out.println("Done with " + prj_name);
+						prjCount++;
+						TimeUnit.SECONDS.sleep(1);
 
 					}
-					System.out.println("Done with " + prj_name);
-					prjCount++;
-					TimeUnit.SECONDS.sleep(1);
+
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					System.out.println("[ERROR] SYSTEM State: ");
+					System.out.println("-------------Project: " + prj_name);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					System.out.println("[ERROR] SYSTEM State: ");
+					System.out.println("-------------Project: " + prj_name);
 				}
 			}
 			System.out.println(">>Fetched: " + prjCount + " repositories.");
-		} catch (Exception e) {
+		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
 		} finally {
 			if (db != null)
 				db.close();

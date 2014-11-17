@@ -10,7 +10,7 @@ public class LSHasher {
 	public HashMap<String, Double> m_HashVector = new HashMap<String, Double>();
 	public Random mRandomGausian = new Random(1);
 	public HashMap<Integer, List<Issue>> mCategories = new HashMap<>();
-	private double mWindow = 0.5;
+	private double mWindow = 0.05;
 
 	public LSHasher(double window) {
 		mWindow = window;

@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.ObjectOutputStream.PutField;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -130,15 +131,17 @@ public class Util {
 			return null;
 		return stackTraces;
 	}
-
-	public static List<StackTrace> splitStackTrace_v2(String s) {
+	public static String splitNormalText(String s) {
 		// String potentialText = splitQuotedText(s)[1];
 		// if (potentialText.length() < 50)
 		String potentialText = s;
+		List<String> Exceptions = new ArrayList<String>();
 		List<String> stackTraces = new ArrayList<>();
 		StringBuilder strStackTrace = new StringBuilder();
 		StringBuilder strNormal = new StringBuilder();
 		int i = 0;
+		int potE_begin = 0;
+		int potE_end = 0;
 		int suspicious_begin = 0;
 		int suspicious_end = 0;
 		int suspicious_newBegin = 0;
@@ -175,10 +178,15 @@ public class Util {
 								normalLine = false;
 							} else {
 								stackTraces.add(strStackTrace.toString());
+								Exceptions.add(potentialText.substring(
+										potE_begin, potE_end));
 								strStackTrace = new StringBuilder();
 								call_cluster = 0;
 							}
 						}
+					} else {
+						potE_begin = suspicious_begin;
+						potE_end = suspicious_end;
 					}
 
 				}
@@ -186,6 +194,8 @@ public class Util {
 				if (normalLine) {
 					if (justCausedBy) {
 						stackTraces.add(strStackTrace.toString());
+						Exceptions.add(potentialText.substring(potE_begin,
+								potE_end));
 						strStackTrace = new StringBuilder();
 						justCausedBy = false;
 					}
@@ -234,11 +244,137 @@ public class Util {
 		}
 		if (strStackTrace.length() > 1) {
 			stackTraces.add(strStackTrace.toString());
+			Exceptions.add(potentialText.substring(potE_begin, potE_end));
 			strStackTrace = new StringBuilder();
 		}
 		List<StackTrace> results = new ArrayList<>();
-		for (String st : stackTraces) {
-			results.add(new StackTrace(st, "", ""));
+		for (int j = 0; j < stackTraces.size(); j++) {
+			results.add(new StackTrace(stackTraces.get(j), Exceptions.get(j),
+					""));
+		}
+		return strNormal.toString();
+	}
+	
+	public static List<StackTrace> splitStackTrace_v2(String s) {
+		// String potentialText = splitQuotedText(s)[1];
+		// if (potentialText.length() < 50)
+		String potentialText = s;
+		List<String> Exceptions = new ArrayList<String>();
+		List<String> stackTraces = new ArrayList<>();
+		StringBuilder strStackTrace = new StringBuilder();
+		StringBuilder strNormal = new StringBuilder();
+		int i = 0;
+		int potE_begin = 0;
+		int potE_end = 0;
+		int suspicious_begin = 0;
+		int suspicious_end = 0;
+		int suspicious_newBegin = 0;
+		int startCall = 0;
+		boolean confirmed_call = false;
+		int call_cluster = 0;
+		boolean normalLine = true;
+		boolean justCausedBy = false;
+		while (i < potentialText.length()) {
+			if (potentialText.charAt(i) == '\n') {
+				suspicious_end = i;
+				suspicious_begin = suspicious_newBegin;
+				suspicious_newBegin = i + 1;
+				normalLine = true;
+				if (confirmed_call) {
+					strStackTrace.append(potentialText
+							.subSequence(startCall, i) + "\n");
+					confirmed_call = false;
+					call_cluster++;
+					normalLine = false;
+					justCausedBy = false;
+				} else {
+					if (call_cluster > 1) {
+						if (potentialText.substring(suspicious_begin,
+								suspicious_end).contains("Caused by:")) {
+							normalLine = false;
+							justCausedBy = true;
+						} else {
+							if (potentialText.substring(suspicious_begin,
+									suspicious_end).contains("  ...")
+									|| potentialText.substring(
+											suspicious_begin, suspicious_end)
+											.contains("\t...")) {
+								normalLine = false;
+							} else {
+								stackTraces.add(strStackTrace.toString());
+								Exceptions.add(potentialText.substring(
+										potE_begin, potE_end));
+								strStackTrace = new StringBuilder();
+								call_cluster = 0;
+							}
+						}
+					} else {
+						potE_begin = suspicious_begin;
+						potE_end = suspicious_end;
+					}
+
+				}
+
+				if (normalLine) {
+					if (justCausedBy) {
+						stackTraces.add(strStackTrace.toString());
+						Exceptions.add(potentialText.substring(potE_begin,
+								potE_end));
+						strStackTrace = new StringBuilder();
+						justCausedBy = false;
+					}
+					strNormal.append(potentialText.subSequence(
+							suspicious_begin, suspicious_end));
+				}
+			}
+
+			if (i + 4 <= potentialText.length()) {
+				if (potentialText.substring(i, i + 4).equals(" at ")
+						|| potentialText.substring(i, i + 4).equals("\tat ")) {
+					startCall = i;
+					i = i + 4;
+					int j = i;
+					boolean braket1 = false;
+					int spaceCounter = 0;
+					while (j < potentialText.length()
+							&& potentialText.charAt(j) != '\n') {
+						if (!braket1) {
+							if (potentialText.charAt(j) == ' ')
+								break;
+							if (potentialText.charAt(j) == '(')
+								braket1 = true;
+						} else {
+							if (potentialText.charAt(j) == '(')
+								break;
+							if (potentialText.charAt(j) == ' ')
+								spaceCounter++;
+							if (spaceCounter > 1) // only 1 space in (Unknown
+													// Source) or (Native
+													// Method)
+								break;
+							if (potentialText.charAt(j) == ')')
+								confirmed_call = true;
+						}
+						j++;
+					}
+					if (j < potentialText.length())
+						if (potentialText.charAt(j) != '\n'
+								|| potentialText.charAt(j) != '\r')
+							j--;
+					i = j;
+				}
+			}
+			i++;
+		}
+		if (strStackTrace.length() > 1) {
+			stackTraces.add(strStackTrace.toString());
+			Exceptions.add(potentialText.substring(potE_begin, potE_end));
+			strStackTrace = new StringBuilder();
+		}
+		List<StackTrace> results = new ArrayList<>();
+		for (int j = 0; j < stackTraces.size(); j++) {
+			results.add(new StackTrace(stackTraces.get(j), Exceptions.get(j),
+					""));
 		}
 
 		if (results.size() == 0)
@@ -246,7 +382,7 @@ public class Util {
 		return results;
 	}
 
-	static String[] splitQuotedText(String s) {
+	public static String[] splitQuotedText(String s) {
 		StringBuilder strNormal = new StringBuilder();
 		StringBuilder strQuoted = new StringBuilder();
 		// boolean bQuoting = false;
@@ -311,20 +447,25 @@ public class Util {
 	}
 
 	public static String buildHyperLink(Issue issue) {
-		if (issue.m_project.equals("eclipseBugzilla"))
-			return "=HYPERLINK(\""
-					+ "https://bugs.eclipse.org/bugs/show_bug.cgi?id="
-					+ issue.m_id + "\",\"" + issue.m_project + "-" + issue.m_id
-					+ "\")";
-		if (issue.m_project.equals("gnomebugzilla"))
-			return "=HYPERLINK(\""
-					+ "https://bugzilla.gnome.org/show_bug.cgi?id="
-					+ issue.m_id + "\",\"" + issue.m_project + "-" + issue.m_id
-					+ "\")";
-		
-		return "=HYPERLINK(\"" + "https://github.com/" + issue.m_project
-				+ "/issues/" + issue.m_id + "\",\"" + issue.m_project + "-"
-				+ issue.m_id + "\")";
+		if (issue.m_project.contains("/")) {
+			return "=HYPERLINK(\"" + "https://github.com/" + issue.m_project
+					+ "/issues/" + issue.m_id + "\",\"" + issue.m_project + "-"
+					+ issue.m_id + "\")";
+		} else {
+			if (issue.m_project.equals("eclipseBugzilla"))
+				return "=HYPERLINK(\""
+						+ "https://bugs.eclipse.org/bugs/show_bug.cgi?id="
+						+ issue.m_id + "\",\"" + issue.m_project + "-"
+						+ issue.m_id + "\")";
+			else {
+				return "=HYPERLINK(\""
+						+ "https://issues.apache.org/jira/browse/"
+						+ issue.m_project + "-" + issue.m_id + "\",\""
+						+ issue.m_project + "-" + issue.m_id + "\")";
+			}
+
+		}
+
 	}
 
 	public static String stripNonDigits(final CharSequence input) {
