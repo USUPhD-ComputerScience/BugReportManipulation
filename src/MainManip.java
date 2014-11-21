@@ -9,10 +9,17 @@ import Util.Util;
 import Util.XMLParser;
 import au.com.bytecode.opencsv.CSVWriter;
 
+import java.awt.image.TileObserver;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -322,7 +329,11 @@ public class MainManip {
 		// fetchingProcedure();
 		// ApacheJiraFetching(prjs);
 		// normalizeXML1();
-		StackTraceStatistic();
+		// StackTraceStatistic();
+		// AndroidAnalysis();
+		// AndroidAnalysis_v2();
+		//AndroidMethodCallAnalysis(0);
+		AndroidExceptionAnalysis(2);
 		// testSplitStactTrace();
 		// long l = Math.round(2.0/ (1.0/1 + 1.0/100.0));
 		// System.out.println(l);
@@ -371,6 +382,59 @@ public class MainManip {
 		}
 
 		System.out.println(">> done normalizing xml");
+	}
+
+	private static List<String> classOfInterest() {
+		List<String> CoI = new ArrayList<String>();
+		InputStream fis;
+		try {
+			fis = new FileInputStream("\\data\\ClassesOfInterest.txt");
+
+			BufferedReader br = new BufferedReader(new InputStreamReader(fis,
+					Charset.forName("UTF-8")));
+			String line;
+			while ((line = br.readLine()) != null) {
+				CoI.add(line);
+			}
+
+			// Done with the file
+			br.close();
+			br = null;
+			fis = null;
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return CoI;
+	}
+	private static List<String> ExceptionsOfInterest() {
+		List<String> EoI = new ArrayList<String>();
+		InputStream fis;
+		try {
+			fis = new FileInputStream("\\data\\ExceptionsOfInterest.txt");
+
+			BufferedReader br = new BufferedReader(new InputStreamReader(fis,
+					Charset.forName("UTF-8")));
+			String line;
+			while ((line = br.readLine()) != null) {
+				EoI.add(line);
+			}
+
+			// Done with the file
+			br.close();
+			br = null;
+			fis = null;
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return EoI;
 	}
 
 	private static void importBugs_Eclipse() {
@@ -591,11 +655,341 @@ public class MainManip {
 				db.close();
 		}
 	}
+	private static void AndroidExceptionAnalysis(int option) {
+		long startTime = System.nanoTime();
+		int issueCount = IssueManager.getInstance()
+				.processLocalRepositories_ST();
+		List<String> CoI = classOfInterest();
+		if(option == 2){
+			BufferedWriter bw = null;
+			try {
+				File file = new File("\\IssueData\\StackTraceStat\\"
+						+ "Android_Analysis_ExceptionLineCount_"
+						+ System.currentTimeMillis() + ".csv");
+
+				// if file doesnt exists, then create it
+				if (!file.exists()) {
+					file.createNewFile();
+				}
+				bw = new BufferedWriter(new FileWriter(file.getAbsoluteFile()));
+				// bw.write(content);
+
+				List<Issue> issues = IssueManager.getInstance().issueData;
+			for (Issue issue:issues) {
+				issue.relateAndroidPackageWithExcpt(bw, CoI);
+			}
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} finally {
+				if (bw != null)
+					try {
+						bw.close();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+
+			}
+			return;
+		}
+		CSVWriter analistWriter = null;
+		try {
+			analistWriter = new CSVWriter(new FileWriter(
+					"\\IssueData\\StackTraceStat\\"
+							+ "Android_Analysis_Exception_"
+							+ System.currentTimeMillis() + ".csv"));
+
+			// for (Map.Entry<Integer, List<Issue>> entry : hasher.mCategories
+			// .entrySet()) {
+			// int key = entry.getKey();
+			List<Issue> issues = IssueManager.getInstance().issueData;
+			System.out.println("Number of issue = " + issues.size());
+			HashMap<Integer, Integer> STAnalist = new HashMap<>();
+			HashMap<String, Integer> frequency = new HashMap<String, Integer>();
+			HashMap<String, Double> weights = new HashMap<String, Double>();
+			
+			for (int i = 0; i < (issues.size() - 1); i++) {
+				if (option == 1)
+					issues.get(i).countException(frequency, CoI);
+				else
+					issues.get(i).rankException(frequency, weights, CoI);
+			}
+			String[] title2 = new String[3];
+			title2[0] = "Exception";
+			if (option == 1) {
+				title2[1] = "Count";
+				analistWriter.writeNext(title2);
+				for (Map.Entry<String, Integer> entry : frequency.entrySet()) {
+					title2[0] = entry.getKey();
+					title2[1] = entry.getValue().toString();
+					analistWriter.writeNext(title2);
+				}
+			} else {
+				title2[1] = "Android Percentage";
+				title2[2] = "Weight";
+				analistWriter.writeNext(title2);
+				for (Map.Entry<String, Double> entry : weights.entrySet()) {
+					title2[0] = entry.getKey();
+					Double weight = entry.getValue()/frequency.get(title2[0]);
+					title2[1] = weight.toString();
+					title2[2] = entry.getValue().toString();
+					analistWriter.writeNext(title2);
+				}
+			}
+		} catch (IOException e) { // TODO Auto-generated catch block
+			e.printStackTrace();
+		} finally {
+			try {
+				analistWriter.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			long endTime = System.nanoTime();
+			long duration = (endTime - startTime); // divide by 1000000 to get
+													// // milliseconds.
+			System.out.println("The whole process ate up: "
+					+ (duration / 1000000 / 1000) + " seconds");
+
+		}
+	}
+	private static void AndroidMethodCallAnalysis(int option) {
+		long startTime = System.nanoTime();
+		int issueCount = IssueManager.getInstance()
+				.processLocalRepositories_ST();
+		CSVWriter analistWriter = null;
+		try {
+			analistWriter = new CSVWriter(new FileWriter(
+					"\\IssueData\\StackTraceStat\\"
+							+ "Android_Analysis_methodCall_"
+							+ System.currentTimeMillis() + ".csv"));
+
+			// for (Map.Entry<Integer, List<Issue>> entry : hasher.mCategories
+			// .entrySet()) {
+			// int key = entry.getKey();
+			List<Issue> issues = IssueManager.getInstance().issueData;
+			System.out.println("Number of issue = " + issues.size());
+			HashMap<Integer, Integer> STAnalist = new HashMap<>();
+			List<String> CoI = classOfInterest();
+			HashMap<String, Integer> frequency = new HashMap<String, Integer>();
+			HashMap<String, Double> weights = new HashMap<String, Double>();
+			for (int i = 0; i < (issues.size() - 1); i++) {
+
+				if (option == 1)
+					issues.get(i).countMethodCall(frequency, CoI);
+				else
+					issues.get(i).rankMethodCall(weights, CoI);
+			}
+			String[] title2 = new String[2];
+			title2[0] = "Classes";
+			if (option == 1) {
+				title2[1] = "Count";
+				analistWriter.writeNext(title2);
+				for (Map.Entry<String, Integer> entry : frequency.entrySet()) {
+					title2[0] = entry.getKey();
+					title2[1] = entry.getValue().toString();
+					analistWriter.writeNext(title2);
+				}
+			} else {
+				title2[1] = "Weight";
+				analistWriter.writeNext(title2);
+				for (Map.Entry<String, Double> entry : weights.entrySet()) {
+					title2[0] = entry.getKey();
+					title2[1] = entry.getValue().toString();
+					analistWriter.writeNext(title2);
+				}
+			}
+		} catch (IOException e) { // TODO Auto-generated catch block
+			e.printStackTrace();
+		} finally {
+			try {
+				analistWriter.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			long endTime = System.nanoTime();
+			long duration = (endTime - startTime); // divide by 1000000 to get
+													// // milliseconds.
+			System.out.println("The whole process ate up: "
+					+ (duration / 1000000 / 1000) + " seconds");
+
+		}
+	}
+
+	private static void AndroidAnalysis_v2() {
+		long startTime = System.nanoTime();
+		int issueCount = IssueManager.getInstance()
+				.processLocalRepositories_ST();
+		CSVWriter analistWriter = null;
+		try {
+			analistWriter = new CSVWriter(new FileWriter(
+					"\\IssueData\\StackTraceStat\\" + "Android_Analysis_v2_"
+							+ System.currentTimeMillis() + ".csv"));
+
+			// for (Map.Entry<Integer, List<Issue>> entry : hasher.mCategories
+			// .entrySet()) {
+			// int key = entry.getKey();
+			List<Issue> issues = IssueManager.getInstance().issueData;
+			System.out.println("Number of issue = " + issues.size());
+			HashMap<Integer, Integer> STAnalist = new HashMap<>();
+			List<String> caredLibs = libsOfInterest();
+			HashMap<String, Integer> frequency = new HashMap<String, Integer>();
+			for (int i = 0; i < (issues.size() - 1); i++) {
+				issues.get(i).count(frequency, caredLibs);
+			}
+			String[] title2 = new String[2];
+			title2[0] = "Classes";
+			title2[1] = "Count";
+			analistWriter.writeNext(title2);
+			for (Map.Entry<String, Integer> entry : frequency.entrySet()) {
+				title2[0] = entry.getKey();
+				title2[1] = entry.getValue().toString();
+				analistWriter.writeNext(title2);
+			}
+		} catch (IOException e) { // TODO Auto-generated catch block
+			e.printStackTrace();
+		} finally {
+			try {
+				analistWriter.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			long endTime = System.nanoTime();
+			long duration = (endTime - startTime); // divide by 1000000 to get
+													// // milliseconds.
+			System.out.println("The whole process ate up: "
+					+ (duration / 1000000 / 1000) + " seconds");
+
+		}
+	}
+
+	private static void AndroidAnalysis() {
+		long startTime = System.nanoTime();
+		int issueCount = IssueManager.getInstance()
+				.processLocalRepositories_ST();
+		// IssueManager.getInstance().buildVector();
+		// LSHasher hasher = new LSHasher(0.5);
+		// hasher.generateHashVectors(Issue.df);
+		// hasher.categorizeLSH(IssueManager.getInstance().issueData);
+		int count = 0;
+		CSVWriter analistWriter = null;
+		try {
+			analistWriter = new CSVWriter(new FileWriter(
+					"\\IssueData\\StackTraceStat\\" + "Android_Analysis_"
+							+ System.currentTimeMillis() + ".csv"));
+
+			// for (Map.Entry<Integer, List<Issue>> entry : hasher.mCategories
+			// .entrySet()) {
+			// int key = entry.getKey();
+			List<Issue> issues = IssueManager.getInstance().issueData;
+			System.out.println("Number of issue = " + issues.size());
+			HashMap<Integer, Integer> STAnalist = new HashMap<>();
+			List<String> caredLibs = libsOfInterest();
+
+			int collumsize = 3 + caredLibs.size() * 2;
+			String[] title2 = new String[collumsize];
+			title2[0] = "Project";
+			title2[1] = "Issue";
+			int index = 0;
+			for (int i = 2; i < collumsize - 1; i++) {
+				if (i % 2 == 0)
+					title2[i] = caredLibs.get(index++);
+				else
+					title2[i] = "";
+			}
+			title2[collumsize - 1] = "Total";
+			analistWriter.writeNext(title2);
+			title2[0] = "";
+			title2[1] = "";
+			for (int i = 2; i < collumsize - 1; i++) {
+				if (i % 2 == 0)
+					title2[i] = "Count";
+				else
+					title2[i] = "FreQ";
+			}
+			analistWriter.writeNext(title2);
+			List<Integer> totalCountList = new ArrayList<>();
+			for (int i = 0; i < caredLibs.size(); i++)
+				totalCountList.add(0);
+			for (int i = 0; i < (issues.size() - 1); i++) {
+				List<Integer> countedList = issues.get(i).contains(caredLibs);
+				if (countedList == null)
+					continue;
+				int totalAppearance = 0;
+				for (int j = 0; j < countedList.size(); j++) {
+					totalAppearance += countedList.get(j);
+					totalCountList.set(j,
+							totalCountList.get(j) + countedList.get(j));
+				}
+				if (totalAppearance == 0)
+					continue;
+				String[] entries = new String[3 + caredLibs.size() * 2];
+
+				entries[0] = issues.get(i).m_project;
+				entries[1] = Util.buildHyperLink(issues.get(i));
+				index = 0;
+				for (int j = 2; j < collumsize - 1; j++) {
+					if (j % 2 == 0)
+						entries[j] = String.valueOf(countedList.get(index));
+					else {
+						double c = countedList.get(index++);
+						double frq = c / totalAppearance;
+						entries[j] = String.valueOf(frq);
+					}
+				}
+				entries[collumsize - 1] = String.valueOf(totalAppearance);
+				analistWriter.writeNext(entries);
+				count++;
+				if (count % 500 == 0) {
+					System.out.println("..found " + count + " android issue..");
+				}
+				// /////////////////////////////////////////////
+			}
+			int totalAppearance = 0;
+			for (int j = 0; j < totalCountList.size(); j++) {
+				totalAppearance += totalCountList.get(j);
+			}
+			String[] entries = new String[collumsize];
+			entries[0] = "Sumary";
+			entries[1] = String.valueOf(count);
+			index = 0;
+			for (int j = 2; j < collumsize - 1; j++) {
+				if (j % 2 == 0)
+					entries[j] = String.valueOf(totalCountList.get(index));
+				else {
+					double c = totalCountList.get(index++);
+					double frq = c / totalAppearance;
+					entries[j] = String.valueOf(frq);
+				}
+			}
+			entries[collumsize - 1] = String.valueOf(totalAppearance);
+			analistWriter.writeNext(entries);
+		} catch (IOException e) { // TODO Auto-generated catch block
+			e.printStackTrace();
+		} finally {
+			try {
+				analistWriter.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			long endTime = System.nanoTime();
+			long duration = (endTime - startTime); // divide by 1000000 to get
+													// // milliseconds.
+			System.out.println("..found " + count + " android issues..");
+
+			System.out.println("The whole process ate up: "
+					+ (duration / 1000000 / 1000) + " seconds");
+
+		}
+	}
 
 	private static void crawlingProcedure() {
 		long startTime = System.nanoTime();
 		GitHubCrawler crawler = new GitHubCrawler("phong1990", "phdcs2014");
-
 		System.out.println(">>Crawling for a list of java repositories.");
 		int choosenProjects = crawler.crawlRepos(crawler.crawlUser());
 		System.out.println("Choosen Projects = " + choosenProjects);
@@ -655,6 +1049,13 @@ public class MainManip {
 
 	}
 
+	private static List<String> libsOfNoInterest() {
+		List<String> libs = new ArrayList<>();
+
+		return libs;
+
+	}
+
 	// only does the statistic on issues which have StackTrace inside them
 	private static void StackTraceStatistic() {
 		long startTime = System.nanoTime();
@@ -696,14 +1097,27 @@ public class MainManip {
 			title2[4] = "Number";
 			analistWriter.writeNext(title2);
 			for (int i = 0; i < (issues.size() - 1); i++) {
-				if (!issues.get(i).contains(caredLibs))
+				List<Integer> countedList = issues.get(i).contains(caredLibs);
+				if (countedList == null)
+					continue;
+				int totalAppearance = 0;
+				for (int j = 0; j < countedList.size(); j++) {
+					totalAppearance += countedList.get(j);
+				}
+				if (totalAppearance == 0)
 					continue;
 				for (int j = i + 1; j < issues.size(); j++) {
 					if (issues.get(i).mStackTraces.size() >= 1
 							&& issues.get(j).mStackTraces.size() >= 1) {
-						if (!issues.get(j).contains(caredLibs))
+						countedList = issues.get(i).contains(caredLibs);
+						if (countedList == null)
 							continue;
-
+						totalAppearance = 0;
+						for (j = 0; j < countedList.size(); j++) {
+							totalAppearance += countedList.get(j);
+						}
+						if (totalAppearance == 0)
+							continue;
 						double sim = issues.get(i).mStackTraces.get(0)
 								.compareTo(issues.get(j).mStackTraces.get(0));
 						Integer number = STAnalist.get(1);

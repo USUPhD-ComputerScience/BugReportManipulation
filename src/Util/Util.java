@@ -27,7 +27,9 @@ public class Util {
 			.compile("(?<atMessage>\\s*at\\s(?<QualifierName>[a-zA-Z0-9_.$<>]*)"
 					+ "\\((?<description>(?<fileLine>(?<CLASS>[a-zA-Z0-9_$]*)."
 					+ "[a-z]+:(?<LINE>[0-9]*))|(?<native>Native Method)|(?<unk>Unkn"
-					+ "own Source))\\))");
+					+ "own Source))\\)\\r*\\s*)");
+	static private final Pattern mException = Pattern
+			.compile("(?<exception>[a-zA-Z0-9_.]+Exception):?");
 	private static HashSet<String> customStopWordList = null;
 
 	public static String normalizeString(String s) {
@@ -63,12 +65,20 @@ public class Util {
 		return customStopWordList.contains(s);
 	}
 
+	public static String getException(String s) {
+
+		Matcher matcher = mException.matcher(s);
+		while (matcher.find()) {
+			return matcher.group("exception");
+		}
+		return null;
+	}
+
 	public static String removeStackTrace(String s) {
 		Matcher matcher = mStackTracePattern.matcher(s);
 		StringBuilder strBuilder = new StringBuilder();
 		int beginIndex = 0;
 		while (matcher.find()) {
-
 			strBuilder.append(s.substring(beginIndex, matcher.start(1)));
 			beginIndex = matcher.end(1);
 		}
@@ -131,6 +141,7 @@ public class Util {
 			return null;
 		return stackTraces;
 	}
+
 	public static String splitNormalText(String s) {
 		// String potentialText = splitQuotedText(s)[1];
 		// if (potentialText.length() < 50)
@@ -254,7 +265,7 @@ public class Util {
 		}
 		return strNormal.toString();
 	}
-	
+
 	public static List<StackTrace> splitStackTrace_v2(String s) {
 		// String potentialText = splitQuotedText(s)[1];
 		// if (potentialText.length() < 50)

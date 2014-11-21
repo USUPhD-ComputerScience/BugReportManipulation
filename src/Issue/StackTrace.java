@@ -1,5 +1,6 @@
 package Issue;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -8,8 +9,24 @@ import java.util.Stack;
 import Util.Util;
 
 public class StackTrace {
-	public List<String> mListCalls = null;
-	public String mException;
+	private List<String> mListCalls = null;
+	public List<String> getmListCalls() {
+		return mListCalls;
+	}
+
+	public void setmListCalls(List<String> mListCalls) {
+		this.mListCalls = mListCalls;
+	}
+
+	private String mException;
+	public String getmException() {
+		return mException;
+	}
+
+	public void setmException(String mException) {
+		this.mException = mException;
+	}
+
 	public String mMessage = null;
 	public static final double mThreshold = 0.9;
 	private static final double c_Coefficent = 0.1; // c is a coefficient for
@@ -32,14 +49,17 @@ public class StackTrace {
 		mMessage = mes;
 	}
 
-	public boolean contains(List<String> something) {
-		for (String call : mListCalls) {
-			for (String thing : something) {
-				if (call.contains(thing))
-					return true;
+	public List<Integer> contains(List<String> something) {
+		List<Integer> countedList = new ArrayList<>();
+		for (int i = 0; i < something.size(); i++) {
+			int count = 0;
+			for (String call : mListCalls) {
+				if (call.contains(something.get(i)))
+					count++;
 			}
+			countedList.add(count);
 		}
-		return false;
+		return countedList;
 	}
 
 	// PDM!
